@@ -34,20 +34,33 @@ var getAccessToken = function(req, res, next) {
 	}
 	
 	console.log('Incoming token: %s', inToken);
-	nosql.one(function(token) {
-		if (token.access_token == inToken) {
-			return token;	
-		}
-	}, function(err, token) {
-		if (token) {
-			console.log("We found a matching token: %s", inToken);
-		} else {
-			console.log('No matching token was found.');
-		}
-		req.access_token = token;
-		next();
-		return;
+	nosql.one().make(function(filter){
+		filter.where('access_token', '=', inToken);
+		filter.callback(function(err, token){
+			if (token) {
+				console.log("We found a matching token: %s", inToken);
+			} else {
+				console.log('No matching token was found.');
+			}
+			req.access_token = token;
+			next();
+			return;
+		});
 	});
+	// nosql.one(function(token) {
+	// 	if (token.access_token == inToken) {
+	// 		return token;	
+	// 	}
+	// }, function(err, token) {
+	// 	if (token) {
+	// 		console.log("We found a matching token: %s", inToken);
+	// 	} else {
+	// 		console.log('No matching token was found.');
+	// 	}
+	// 	req.access_token = token;
+	// 	next();
+	// 	return;
+	// });
 };
 
 var requireAccessToken = function(req, res, next) {
@@ -75,10 +88,18 @@ app.get('/favorites', getAccessToken, requireAccessToken, function(req, res) {
 	/*
 	 * Get different user information based on the information of who approved the token
 	 */
-	
-	var unknown = {user: 'Unknown', favorites: {movies: [], foods: [], music: []}};
-	res.json(unknown);
-
+	if (req.access_token.user == 'alice')
+	{
+		res.json({user: 'Alice', favorites: aliceFavorites});
+	}
+	else if (req.access_token.user = 'bob')
+	{
+		res.json({user: 'Bob', favorites: bobFavorites});
+	}
+	else{
+		var unknown = {user: 'Unknown', favorites: {movies: [], foods: [], music: []}};
+		res.json(unknown);
+	}
 });
 
 var server = app.listen(9002, 'localhost', function () {
